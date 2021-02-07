@@ -15,6 +15,18 @@ from .apa7_cls import apa7_cls
 log = logging.getLogger(__name__)
 
 
+def latexify_fragment(content, out):
+    out.write(r'''
+\begin{center}
+\begin{tabular}{ c c c }
+ cell1 & cell2 & cell3 \\
+ cell4 & cell5 & cell6 \\
+ cell7 & cell8 & cell9
+\end{tabular}
+\end{center}
+''')
+
+
 async def latexify(content, out, resolve_image):
 
     now = localtime()[0:6]

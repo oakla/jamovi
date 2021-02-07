@@ -723,6 +723,11 @@ const ResultsPanel = Backbone.View.extend({
                 if (part === '')
                     options.filters.push({ name: 'LaTeX bundle (.zip)', extensions:  [ 'zip' ] });
 
+                if (event.target.type === 'Table') {
+                    options.title = 'Export table';
+                    options.filters.push({ name: 'LaTeX fragment (.tex)', extensions:  [ 'tex' ] });
+                }
+
                 let result = await host.showSaveDialog(options);
                 if (result.canceled)
                     return;

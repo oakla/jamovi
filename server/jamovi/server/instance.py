@@ -614,6 +614,9 @@ class Instance:
                     self._coms.send(None, self._instance_id, request,
                                     complete=False, progress=progress)
 
+        elif path.endswith('.tex'):  # latex table
+            with open(path, 'w', encoding='utf-8') as stream:
+                latexify_fragment(content, stream)
         else:
             with open(path, 'wb') as file:
                 file.write(content)
