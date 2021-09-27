@@ -223,11 +223,27 @@ void DataSetW::initColumn(MemoryMapW *mm, ColumnStruct *&columnp)
 
     std::cout << "assigning blocks to rel " << rel << "\n";
 
-    column = mm->resolve(rel);
-    column->blocks = blocks;
+    std::cout << "0x0 contains " << *(mm->resolve<int>((int*)NULL)) << "\n";
+    std::cout << "0x82100 contains " << *(mm->resolve<int>((int*)0x82100)) << "\n";
 
     std::cout << "assigned blocks to column: " << (void*)blocks << " to " << (void*)(&(rel->blocks)) << "\n";
     std::cout.flush();
+
+    column = mm->resolve(rel);
+    column->blocks = blocks;
+
+    std::cout << "0x0 is at " << (mm->resolve<int>((int*)NULL)) << "\n";
+    std::cout << "0x82100 is at " << (mm->resolve<int>((int*)0x82100)) << "\n";
+    std::cout << "column is at " << column << "\n";
+    std::cout << "blocks is at " << blocks << "\n";
+    std::cout << "column->blocks is at " << column->blocks << "\n";
+
+    std::cout << "0x0 contains " << *(mm->resolve<int>((int*)NULL)) << "\n";
+    std::cout << "0x82100 contains " << *(mm->resolve<int>((int*)0x82100)) << "\n";
+
+
+
+    // blocks = _mm->resolve<Block*>(cs->blocks);
 
     columnp = column;
 }

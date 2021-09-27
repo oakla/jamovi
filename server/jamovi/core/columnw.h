@@ -87,21 +87,12 @@ private:
         ColumnStruct *cs = _mm->resolve<ColumnStruct>(_rel);
         int blocksRequired = count * sizeof(T) / VALUES_SPACE + 1;
 
-        std::cout << "setting row count\n";
-        std::cout << "blocks used " << cs->blocksUsed << "\n";
-        std::cout.flush();
-
         for (int i = cs->blocksUsed; i < blocksRequired; i++)
         {
             Block *block = _mm->allocateSize<Block>(BLOCK_SIZE);
             cs = _mm->resolve<ColumnStruct>(_rel);
 
-            std::cout << "_rel is " << _rel << "\n";
-
             Block **blocks = _mm->resolve<Block*>(cs->blocks);
-
-            std::cout << "cs->blocks is " << cs->blocks << "\n";
-            std::cout << "_mm->base(block) is " << _mm->base(block) << "\n";
 
             blocks[i] = _mm->base(block);
 

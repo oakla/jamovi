@@ -27,6 +27,9 @@ public:
         if (allocated != NULL)
             *allocated = size;
 
+        std::cout << "0x0 contains " << *(this->resolve<int>((int*)NULL)) << "\n";
+        std::cout << "0x82100 contains " << *(this->resolve<int>((int*)0x82100)) << "\n";
+
         std::cout << "allocating " << size << " bytes at " << (void*)(_cursor - _start) << " to " << (void*)(_cursor - _start + size) << "\n";
         std::cout.flush();
 
