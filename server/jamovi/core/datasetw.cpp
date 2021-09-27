@@ -9,6 +9,8 @@
 #include <stdexcept>
 #include <cmath>
 
+#include <iostream>
+
 using namespace std;
 
 DataSetW *DataSetW::create(MemoryMapW *mm)
@@ -165,6 +167,9 @@ ColumnW DataSetW::appendColumn(const char *name, const char *importName)
     columns = _mm->resolve(dss->columns);
     columns[columnCount] = column;
 
+    std::cout << "assigned column to ds: " << (void*)column << " to " << (void*)(&(dss->columns[columnCount])) << "\n";
+    std::cout.flush();
+
     column = strucC(columnCount);
 
     initColumn(_mm, column);
@@ -218,6 +223,9 @@ void DataSetW::initColumn(MemoryMapW *mm, ColumnStruct *&columnp)
 
     column = mm->resolve(rel);
     column->blocks = blocks;
+
+    std::cout << "assigned blocks to column: " << (void*)blocks << " to " << (void*)(&(rel->blocks)) << "\n";
+    std::cout.flush();
 
     columnp = column;
 }
