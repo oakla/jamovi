@@ -38,7 +38,7 @@ void ColumnW::setName(const char *name)
     ColumnStruct *s = struc();
     s->name = _mm->base(chars);
 
-    std::cout << "wrote " << length << " chars to " << (void*)s->name << "\n";
+    std::cout << "wrote " << name << " chars to " << (void*)s->name << "\n";
     std::cout << "assigned " << (void*)s->name << " to " << (void*)(&(_rel->name)) << "\n";
     std::cout.flush();
 
