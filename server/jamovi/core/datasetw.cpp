@@ -221,6 +221,8 @@ void DataSetW::initColumn(MemoryMapW *mm, ColumnStruct *&columnp)
     ColumnStruct *rel = mm->base(column);
     Block** blocks = mm->allocateBase<Block*>(column->blockCapacity);
 
+    std::cout << "assigning blocks to rel " << rel << "\n";
+
     column = mm->resolve(rel);
     column->blocks = blocks;
 

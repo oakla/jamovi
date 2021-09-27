@@ -95,10 +95,13 @@ private:
         {
             Block *block = _mm->allocateSize<Block>(BLOCK_SIZE);
             cs = _mm->resolve<ColumnStruct>(_rel);
+
+            std::cout << "_rel is " << _rel << "\n";
+
             Block **blocks = _mm->resolve<Block*>(cs->blocks);
 
-            std::cout << "blocks are at " << (void*)cs->blocks << "\n";
-            std::cout.flush();
+            std::cout << "cs->blocks is " << cs->blocks << "\n";
+            std::cout << "_mm->base(block) is " << _mm->base(block) << "\n";
 
             blocks[i] = _mm->base(block);
 
