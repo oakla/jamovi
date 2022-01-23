@@ -67,6 +67,123 @@ if (response.ok) {
 
 require('./infobox');
 
+let instance = new Instance({ coms : coms });
+
+let infoBox = document.createElement('jmv-infobox');
+infoBox.style.display = 'none';
+
+document.body.appendChild(infoBox);
+
+let notifications = new Notifications($('#notifications'));
+
+let toOpen = '';  // '' denotes blank data set
+
+let progNotif = new Notify({
+    title: _('Opening'),
+    duration: 0
+});
+
+try {
+
+    await coms.ready;
+
+    let instanceId;
+    let match = /\/([a-z0-9-]+)\/$/.exec(window.location.pathname);
+    if (match)
+        instanceId = match[1];
+
+    if (window.location.search.indexOf('?open=') !== -1) {
+        toOpen = `${ window.location.search }${ window.location.hash }`.split('?open=')[1];
+        if (toOpen.startsWith('http://') || toOpen.startsWith('https://'))
+            ; // do nothing
+        else
+            toOpen = decodeURI(toOpen);
+    }
+
+    const notify = (progress) => {
+        if (progress.p !== undefined) {
+            progNotif.set({
+                title: progress.title,
+                progress: [ progress.p, progress.n ],
+            });
+            notifications.notify(progNotif);
+        }
+
+        if (progress.status !== undefined) {
+            infoBox.setup(progress);
+        }
+    };
+
+    let status;
+
+    try {
+        while (true) {
+            let stream = instance.open(toOpen, { existing: !!instanceId });
+            for await (let progress of stream)
+                notify(progress);
+            status = await stream;
+
+            if (status.status === 'requires-auth')
+                await infoBox.setup(status);
+            else
+                break;
+        }
+    }
+    catch (e) {
+        if (host.isElectron && toOpen !== '') {
+            // if opening fails, open a blank data set
+            status = await instance.open('', { existing: !!instanceId });
+            notifications.notify(new Notify({
+                title: _('Unable to open'),
+                message: e.cause || e.message,
+                type: 'error',
+                duration: 3000,
+            }));
+        }
+        else {
+            throw e;
+        }
+    }
+
+    if ('url' in status)
+        history.replaceState({}, '', `${host.baseUrl}${status.url}`);
+
+    if (status.message || status.title || status['message-src'])
+        infoBox.setup(status);
+    else
+        infoBox.hide();
+
+    instanceId = /\/([a-z0-9-]+)\/$/.exec(window.location.pathname)[1];
+    await instance.connect(instanceId);
+
+    progNotif.dismiss();
+}
+catch (e) {
+
+    progNotif.dismiss();
+
+    if (e instanceof JError) {
+        infoBox.setup({
+            title: e.message,
+            message: e.cause,
+            status: e.status,
+            'message-src': e.messageSrc,
+        });
+    }
+    else {
+        console.log(e);
+
+        infoBox.setup({
+            title: _('Connection failed'),
+            message: _('Unable to connect to the server'),
+            status: 'disconnected',
+        });
+    }
+
+    infoBox.style.display = null;
+    await new Promise((resolve, reject) => { /* never */ });
+}
+
 const keyboardJS = require('keyboardjs');
 
 keyboardJS.Keyboard.prototype.pause = function(key) {
@@ -107,7 +224,8 @@ keyboardJS.Keyboard.prototype.resume = function(key) {
     }
 };
 
-let instance = new Instance({ coms : coms });
+
+
 
 let dataSetModel = instance.dataSetModel();
 let analyses = instance.analyses();
@@ -118,8 +236,7 @@ let ribbonModel = new RibbonModel({ modules: instance.modules(), settings: insta
 // this is passing over a context boundary, so can't pass complex objects
 host.setDialogProvider({ showDialog: (op, options) => backstageModel.showDialog(op, options) });
 
-let infoBox = document.createElement('jmv-infobox');
-infoBox.style.display = 'none';
+
 
 coms.on('failure', (event) => {
     if (host.isElectron) {
@@ -608,7 +725,6 @@ $(document).ready(async() => {
 
     let editor = new VariableEditor({ el : '#variable-editor', model : dataSetModel, controller: viewController });
 
-    let notifications = new Notifications($('#notifications'));
     instance.on( 'notification', note => notifications.notify(note));
     viewController.on('notification', note => notifications.notify(note));
     mainTable.on('notification', note => notifications.notify(note));
@@ -648,115 +764,7 @@ $(document).ready(async() => {
         }
     });
 
-    document.body.appendChild(infoBox);
 
-    let toOpen = '';  // '' denotes blank data set
-
-    let progNotif = new Notify({
-        title: _('Opening'),
-        duration: 0
-    });
-
-    try {
-
-        await coms.ready;
-
-        let instanceId;
-        let match = /\/([a-z0-9-]+)\/$/.exec(window.location.pathname);
-        if (match)
-            instanceId = match[1];
-
-        if (window.location.search.indexOf('?open=') !== -1) {
-            toOpen = `${ window.location.search }${ window.location.hash }`.split('?open=')[1];
-            if (toOpen.startsWith('http://') || toOpen.startsWith('https://'))
-                ; // do nothing
-            else
-                toOpen = decodeURI(toOpen);
-        }
-
-        const notify = (progress) => {
-            if (progress.p !== undefined) {
-                progNotif.set({
-                    title: progress.title,
-                    progress: [ progress.p, progress.n ],
-                });
-                notifications.notify(progNotif);
-            }
-
-            if (progress.status !== undefined) {
-                infoBox.setup(progress);
-            }
-        };
-
-        let status;
-
-        try {
-            while (true) {
-                let stream = instance.open(toOpen, { existing: !!instanceId });
-                for await (let progress of stream)
-                    notify(progress);
-                status = await stream;
-
-                if (status.status === 'requires-auth')
-                    await infoBox.setup(status);
-                else
-                    break;
-            }
-        }
-        catch (e) {
-            if (host.isElectron && toOpen !== '') {
-                // if opening fails, open a blank data set
-                status = await instance.open('', { existing: !!instanceId });
-                notifications.notify(new Notify({
-                    title: _('Unable to open'),
-                    message: e.cause || e.message,
-                    type: 'error',
-                    duration: 3000,
-                }));
-            }
-            else {
-                throw e;
-            }
-        }
-
-        if ('url' in status)
-            history.replaceState({}, '', `${host.baseUrl}${status.url}`);
-
-        if (status.message || status.title || status['message-src'])
-            infoBox.setup(status);
-        else
-            infoBox.hide();
-
-        instanceId = /\/([a-z0-9-]+)\/$/.exec(window.location.pathname)[1];
-        await instance.connect(instanceId);
-
-        progNotif.dismiss();
-    }
-    catch (e) {
-
-        progNotif.dismiss();
-
-        if (e instanceof JError) {
-            infoBox.setup({
-                title: e.message,
-                message: e.cause,
-                status: e.status,
-                'message-src': e.messageSrc,
-            });
-        }
-        else {
-            console.log(e);
-
-            infoBox.setup({
-                title: _('Connection failed'),
-                message: _('Unable to connect to the server'),
-                status: 'disconnected',
-            });
-        }
-
-        infoBox.style.display = null;
-        await new Promise((resolve, reject) => { /* never */ });
-    }
 
     // if it's just the results heading ...
     if (instance.analyses().count() === 1) {

@@ -1903,6 +1903,7 @@ const BackstageView = SilkyView.extend({
         this.model.on('change:place',     this._placeChanged, this);
         this.model.on('change:ops',       this.render, this);
         this.model.on('change:dialogMode', this._dialogModeChanged, this);
+        this.render();
     },
     _dialogModeChanged: function() {
         let $recents = this.$el.find('.silky-bs-op-recents-main');

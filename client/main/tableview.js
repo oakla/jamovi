@@ -26,7 +26,7 @@ const TableView = SilkyView.extend({
         $(window).on('resize', event => this._resizeHandler(event));
         this.$el.on('resized', event => this._resizeHandler(event));
 
-        this.model.on('dataSetLoaded', this._dataSetLoaded, this);
+        // this.model.on('dataSetLoaded', this._dataSetLoaded, this);
         this.model.on('change:cells',  this._updateCells, this);
         this.model.on('cellsChanged', this._cellsChanged, this);
         this.model.on('rhChanged', this._rhChanged, this);
@@ -224,6 +224,9 @@ const TableView = SilkyView.extend({
             if (this._editing)
                 this._modifyingCellContents = true;
         });
+
+        if (this.model.get('hasDataSet'))
+            this._dataSetLoaded();
     },
     onEditingVarChanged(editingColumns) {
         if (this.selection !== null) {
