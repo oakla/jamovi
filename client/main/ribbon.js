@@ -15,6 +15,7 @@ const VariablesTab = require('./ribbon/variablestab');
 const AnnotationTab = require('./ribbon/annotationtab');
 const AnalyseTab = require('./ribbon/analysetab');
 const Notifs = require('./ribbon/notifs');
+require('./auth/statusui');
 
 const RibbonModel = Backbone.Model.extend({
 
@@ -119,6 +120,7 @@ const RibbonView = Backbone.View.extend({
 
         this.$el.append(`
             <div class="jmv-ribbon-header">
+                <jmv-authstatusui></jmv-authstatusui>
                 <div class="jmv-ribbon-fullscreen"></div>
                 <div class="jmv-ribbon-appmenu"></div>
             </div>

@@ -27,6 +27,7 @@ const I18n = require('../common/i18n');
 const Instance = require('./instance');
 const Notify = require('./notification');
 const JError = require('./errors').JError;
+const auth = require('./auth/auth');
 
 window._ = I18n._;
 window.n_ = I18n._n;
@@ -106,6 +107,8 @@ keyboardJS.Keyboard.prototype.resume = function(key) {
         this._paused = false;
     }
 };
+
+auth.init();
 
 let instance = new Instance({ coms : coms });
 
