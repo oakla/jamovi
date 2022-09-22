@@ -14,10 +14,19 @@ const Version = require('../utils/version');
 
 const PageModules = Backbone.View.extend({
     className: 'PageModules',
-    initialize: function() {
+    initialize: async function() {
 
         this.modules = this.model.modules;
         this.settings = this.model.settings;
+
+        this.promiseCount = 0;
+        this.settings.on('change:permissions_library_show_hide', async () => {
+            this.startRefresh();
+        });
+
+        this.settings.on('change:permissions_library_add_remove', async () => {
+            this.startRefresh();
+        });
 
         this.$el.addClass('jmv-store-page-installed');
 
@@ -39,8 +48,8 @@ const PageModules = Backbone.View.extend({
 
         this.$progressbar = this.$installing.find('.jmv-store-progress-bar');
 
-        this.modules.on('change:modules', this._refresh, this);
-        this.modules.on('moduleVisibilityChanged', this._refresh, this);
+        this.modules.on('change:modules', this.startRefresh, this);
+        this.modules.on('moduleVisibilityChanged', this.startRefresh, this);
 
         this.$modules = $();
         this.$uninstall = $();
@@ -82,7 +91,7 @@ const PageModules = Backbone.View.extend({
 
         this.$errorRetry.on('click', () => this.modules.retrieve());
 
-        this._refresh();
+        this.startRefresh();
     },
     _updateMessage() {
         let message = this.modules.attributes.message;
@@ -124,13 +133,31 @@ const PageModules = Backbone.View.extend({
         });
     },
 
+    async startRefresh() {
+        this.promiseCount += 1;
+
+        if (this.refreshPromise) {
+            this.refreshPromise = this.refreshPromise.then(() => {
+                return this._refresh();
+            });
+        }
+        else
+            this.refreshPromise = this._refresh();
+
+        this.refreshPromise.finally(() => {
+            if (this.promiseCount === 0)
+                this.refreshPromise = null;
+        });
+
+    },
+
     async _refresh() {
 
-        this.$modules.off();
         this.$uninstall.off();
         this.$visibility.off();
         this.$install.off();
-        this.$content.empty();
+
+        this.$content.find('.jmv-store-module').addClass('to-be-removed');
 
         this._updateMessage();
 
@@ -158,8 +185,8 @@ const PageModules = Backbone.View.extend({
                     </div>
                     <div class="jmv-store-module-rhs">
                         <h2 class="mark-search">${ label }<span class="version">${ version }</span></h2>
-                        <div class="authors"></div>
-                        <div class="description"></div>`;
+                        <div class="authors">${module.authors.join(', ')}</div>
+                        <div class="description">${module.description}</div>`;
 
             for (let op of module.ops) {
                 let disabled = (op === 'installed' || op === 'old' || op === 'incompatible');
@@ -220,14 +247,19 @@ const PageModules = Backbone.View.extend({
                     </div>
                 </div>`;
 
-            let $module = $(html);
 
-            $module.find('.description').html(module.description);
-            $module.find('.authors').html(module.authors.join(', '));
-
-            $module.appendTo(this.$content);
-            $module.on('click', event => this._moduleClicked(event));
+            let $module = this.$content.find(`.jmv-store-module[data-name=${ module.name }]`);
+            if ($module.length === 0) {
+                $module = $(html);
+                $module.appendTo(this.$content);
+            }
+            else {
+                $module.removeClass('to-be-removed');
+                $module[0].outerHTML = html;
+            }
         }
+
+        this.$content.find('.to-be-removed').remove();
 
         this.markHTML();
 
@@ -239,6 +271,9 @@ const PageModules = Backbone.View.extend({
         this.$uninstall.on('click', event => this._uninstallClicked(event));
         this.$install.on('click', event => this._installClicked(event));
         this.$visibility.on('click', event => this._visibilityClicked(event));
+
+        this.promiseCount -= 1;
+
     },
     _installClicked(event) {
         let $target = $(event.target);
@@ -295,13 +330,7 @@ const PageModules = Backbone.View.extend({
     },
     _notify(note) {
         this.trigger('notification', new Notify(note));
-    },
-    _moduleClicked(event) {
-        let $target = $(event.target);
-        let $module = $target.closest(this.$modules);
-        this.$modules.removeClass('selected');
-        $module.addClass('selected');
-    },
+    }
 });
 
 module.exports = PageModules;
