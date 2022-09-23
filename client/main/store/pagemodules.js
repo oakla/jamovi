@@ -11,22 +11,18 @@ Backbone.$ = $;
 
 const Notify = require('../notification');
 const Version = require('../utils/version');
+const ProgressStream = require('../utils/progressstream');
+
 
 const PageModules = Backbone.View.extend({
     className: 'PageModules',
-    initialize: async function() {
+    initialize: function() {
 
         this.modules = this.model.modules;
         this.settings = this.model.settings;
 
-        this.promiseCount = 0;
-        this.settings.on('change:permissions_library_show_hide', async () => {
-            this.startRefresh();
-        });
-
-        this.settings.on('change:permissions_library_add_remove', async () => {
-            this.startRefresh();
-        });
+        this.settings.on('change:permissions_library_show_hide', () => this._triggerRefresh());
+        this.settings.on('change:permissions_library_add_remove', () => this._triggerRefresh());
 
         this.$el.addClass('jmv-store-page-installed');
 
@@ -48,8 +44,8 @@ const PageModules = Backbone.View.extend({
 
         this.$progressbar = this.$installing.find('.jmv-store-progress-bar');
 
-        this.modules.on('change:modules', this.startRefresh, this);
-        this.modules.on('moduleVisibilityChanged', this.startRefresh, this);
+        this.modules.on('change:modules', this._triggerRefresh, this);
+        this.modules.on('moduleVisibilityChanged', this._triggerRefresh, this);
 
         this.$modules = $();
         this.$uninstall = $();
@@ -91,7 +87,25 @@ const PageModules = Backbone.View.extend({
 
         this.$errorRetry.on('click', () => this.modules.retrieve());
 
-        this.startRefresh();
+        this._events = new ProgressStream();
+        
+        (async () => {
+            // event dispatcher
+            for await (let event of this._events) {
+                if (event.type === 'refresh')
+                    await this._refresh();
+            }
+        })();
+
+        this._triggerRefresh();
+    },
+    _triggerRefresh() {
+        this._events.setProgress({ type: 'refresh' });
+    },
+    stopListening() {
+        // technically not necessary, because this is never remove()d
+        this._events.resolve();
+        Backbone.View.prototype.stopListening(this, arguments);
     },
     _updateMessage() {
         let message = this.modules.attributes.message;
@@ -131,24 +145,6 @@ const PageModules = Backbone.View.extend({
                     this.$el.find('.jmv-store-module').removeClass('hide-module');
             }
         });
-    },
-
-    async startRefresh() {
-        this.promiseCount += 1;
-
-        if (this.refreshPromise) {
-            this.refreshPromise = this.refreshPromise.then(() => {
-                return this._refresh();
-            });
-        }
-        else
-            this.refreshPromise = this._refresh();
-
-        this.refreshPromise.finally(() => {
-            if (this.promiseCount === 0)
-                this.refreshPromise = null;
-        });
-
     },
 
     async _refresh() {
@@ -271,8 +267,6 @@ const PageModules = Backbone.View.extend({
         this.$uninstall.on('click', event => this._uninstallClicked(event));
         this.$install.on('click', event => this._installClicked(event));
         this.$visibility.on('click', event => this._visibilityClicked(event));
-
-        this.promiseCount -= 1;
 
     },
     _installClicked(event) {
