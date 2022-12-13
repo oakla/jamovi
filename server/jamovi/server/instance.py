@@ -17,7 +17,6 @@ from .utils import CSVParser
 from .utils import HTMLParser
 from .utils import ssl_context
 from .utils.stream import ProgressStream
-from .modules import Modules
 from .instancemodel import InstanceModel
 from . import formatio
 from .modtracker import ModTracker
@@ -65,8 +64,8 @@ class ForbiddenOp(PermissionError):
 
 
 ConnectionStatus = namedtuple('ConnectionStatus',
-    ('connected', 'inactive_since', 'unclean', 'virgin'),
-    defaults=(True, None, False, False))
+                              ('connected', 'inactive_since', 'unclean', 'virgin'),
+                              defaults=(True, None, False, False))
 
 
 class Instance:
@@ -96,6 +95,7 @@ class Instance:
 
         self._data.analyses.add_results_changed_listener(self._on_results)
         self._data.analyses.add_output_received_listener(self._on_output_received)
+        self._data.analyses.weights_changed += self._on_weights_changed
 
         self._session.modules.add_listener(self._module_event)
 
@@ -109,7 +109,6 @@ class Instance:
 
         main_settings = self._settings.group('main')
         main_settings.changed += self._main_settings_changed
-
 
     @property
     def id(self):
@@ -238,11 +237,10 @@ class Instance:
         if self._no_connection_since is None:
             return ConnectionStatus()
         else:
-            return ConnectionStatus(
-                    False,
-                    self._no_connection_since,
-                    self._no_connection_unclean_disconnect,
-                    self._virgin)
+            return ConnectionStatus(False,
+                                    self._no_connection_since,
+                                    self._no_connection_unclean_disconnect,
+                                    self._virgin)
 
     def idle_for(self):
         return monotonic() - self._idle_since
@@ -454,6 +452,15 @@ class Instance:
 
         except Exception as e:
             log.exception(e)
+
+    def _on_weights_changed(self, event):
+        weights_column_name = event.data['weights']
+        self._data.set_weights_by_name(weights_column_name)
+
+        for analysis in self._data.analyses:
+            using = analysis.get_using()
+            if using:
+                analysis.notify_changes(using)
 
     def _on_fs_request(self, request):
         try:
@@ -868,9 +875,9 @@ class Instance:
                     path = url
 
                     integ_handler = get_special_handler(url)
-                    
+
                     class Connector(TCPConnector):
-                        async def _resolve_host(self, host: str, port: int, traces = None):
+                        async def _resolve_host(self, host: str, port: int, traces):
                             resolved_list = await super()._resolve_host(host, port, traces)
                             for resolved in resolved_list:
                                 if not ip_address(resolved['host']).is_global:

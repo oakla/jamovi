@@ -4,7 +4,8 @@
 
 'use strict';
 
-const $ = require('jquery');
+import { $ } from 'jquery';
+
 const Backbone = require('backbone');
 Backbone.$ = $;
 const path = require('path');
@@ -25,6 +26,15 @@ const { flatten, unflatten } = require('../common/utils/addresses');
 
 const JError = require('./errors').JError;
 const CancelledError = require('./errors').CancelledError;
+
+
+interface CreateAnalysisOptions {
+    readonly name: string;
+    readonly ns: string;
+    readonly title: string;
+    readonly index?: number;
+    readonly onlyOne?: boolean;
+}
 
 
 const Instance = Backbone.Model.extend({
@@ -172,7 +182,7 @@ const Instance = Backbone.Model.extend({
                     // create a body stream that's kinda like what the fetch api produces
                     let stream = new ReadableStream({
                         async start(controller) {
-                            await new Promise((resolve) => {
+                            await new Promise<void>((resolve) => {
                                 xhr.addEventListener('progress', (event) => {
                                     let jsonlines = xhr.responseText;
                                     if (jsonlines) {
@@ -218,7 +228,7 @@ const Instance = Backbone.Model.extend({
                     xhr.send(file);
 
                     // wait till upload completes
-                    await new Promise((resolve) => {
+                    await new Promise<void>((resolve) => {
                         xhr.addEventListener('readystatechange', (event) => {
                             if (xhr.readyState !== XMLHttpRequest.OPENED)
                                 resolve();
@@ -419,7 +429,7 @@ const Instance = Backbone.Model.extend({
 
             if (content) {
                 if (typeof content === 'string')
-                    content = new TextEncoder('utf-8').encode(content);
+                    content = new TextEncoder().encode(content);
                 save.incContent = true;
                 save.content = content;
                 options.content = content;
@@ -706,9 +716,29 @@ const Instance = Backbone.Model.extend({
 
         return response;
     },
-    async createAnalysis(name, ns, title) {
-        let analysis = await this._analyses.create({ name, ns, title, enabled: true });
-        this._sendAnalysis(analysis);
+    async createAnalysis(opts: CreateAnalysisOptions) {
+
+        let analysis: any;
+
+        if (opts.onlyOne) {
+            // onlyOne means we reuse an existing analysis (when present)
+            for (let existing of this._analyses) {
+                if (existing.ns === opts.ns && existing.name === opts.name) {
+                    analysis = existing;
+                    break;
+                }
+            }
+        }
+        
+        if ( ! analysis) {
+            analysis = await this._analyses.create({
+                name: opts.name,
+                ns: opts.ns,
+                title: opts.title,
+                index: opts.index,
+                enabled: true });
+            this._sendAnalysis(analysis);
+        }
         this.set('selectedAnalysis', analysis);
     },
     async duplicateAnalysis(dupliceeId) {
@@ -730,7 +760,7 @@ const Instance = Backbone.Model.extend({
         return analysis;
     },
     _optionsExtras() {
-        let ppi = parseInt(72 * (window.devicePixelRatio || 1));
+        let ppi = Math.trunc(72 * (window.devicePixelRatio || 1));
         let theme = this._settings.getSetting('theme', 'default');
         let palette = this._settings.getSetting('palette', 'jmv');
 
