@@ -448,7 +448,7 @@ class Instance:
                 self._populate_schema_info(None, response)
                 self._coms.send(response, self._instance_id)
 
-            self._update_analyses(changed, renamed, rows_added_removed)
+            self._update_analyses(changed=changed, renamed=renamed, rows_added_removed=rows_added_removed)
 
         except Exception as e:
             log.exception(e)
@@ -456,11 +456,7 @@ class Instance:
     def _on_weights_changed(self, event):
         weights_column_name = event.data['weights']
         self._data.set_weights_by_name(weights_column_name)
-
-        for analysis in self._data.analyses:
-            using = analysis.get_using()
-            if using:
-                analysis.notify_changes(using)
+        self._update_analyses(weights_changed=True)
 
     def _on_fs_request(self, request):
         try:
@@ -1586,11 +1582,16 @@ class Instance:
         changed |= set(map(lambda x: x.name, changes['deleted_columns']))
         changed |= set(map(lambda x: x.name, changes['data_changed']))
 
-        self._update_analyses(changed, renamed, changes['rows_added_removed'])
+        weights_changed = self._data.has_weights and self._data.weights_name in changed
 
-    def _update_analyses(self, changed, renamed, rows_added_removed):
+        self._update_analyses(changed=changed,
+                              renamed=renamed,
+                              rows_added_removed=changes['rows_added_removed'],
+                              weights_changed=weights_changed)
 
-        if rows_added_removed:
+    def _update_analyses(self, *, changed=set(), renamed=set(), rows_added_removed=False, weights_changed=False):
+
+        if rows_added_removed or weights_changed:
             changed = set(map(lambda x: x.name, self._data))
 
         for analysis in self._data.analyses:

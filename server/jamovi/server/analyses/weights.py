@@ -20,7 +20,6 @@ class Weights(Analysis):
     def __init__(self, dataset, id, name, ns, options, parent, enabled, **kwargs):
         super().__init__(dataset, id, name, ns, options, parent, enabled, **kwargs)
         self._status = Analysis.Status.COMPLETE
-        self._weight_var = None
 
         self.results = AnalysisResponse()
         self.results.name = name
@@ -38,6 +37,11 @@ class Weights(Analysis):
         self._html_pb = self.results.results.group.elements.add().html
         self._removed = False
         self._update(just_created=True)
+
+    def set_weights(self, weights_name: str, *, silent=False):
+        self.options.set_value('weights', weights_name)
+        if not silent:
+            self._update()
 
     def set_status(self, status):
         # do nothing, always 'COMPLETE'

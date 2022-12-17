@@ -295,13 +295,11 @@ DataFrame readDF(
 
     if (dataset.hasWeights())
     {
-        int MISSING = IntegerVector::get_na();
         auto weights = dataset.weights();
 
         if (weights.dataType() == DataType::INTEGER)
         {
-            IntegerVector v(rowCountExFiltered, MISSING);
-
+            IntegerVector v(rowCountExFiltered, IntegerVector::get_na());
             rowNo = 0;
 
             for (int j = 0; j < rowCount; j++)
@@ -313,9 +311,24 @@ DataFrame readDF(
                     {
                         if (weights.shouldTreatAsMissing(j) == false)
                             v[rowNo] = value;
-                        else
-                            v[rowNo] = MISSING;
                     }
+                    rowNo++;
+                }
+            }
+
+            columns.attr("jmv-weights") = v;
+        }
+        else if (weights.dataType() == DataType::DECIMAL)
+        {
+            NumericVector v(rowCountExFiltered, NumericVector::get_na());
+            rowNo = 0;
+
+            for (int j = 0; j < rowCount; j++)
+            {
+                if ( ! dataset.isRowFiltered(j))
+                {
+                    if (weights.shouldTreatAsMissing(j) == false)
+                        v[rowNo] = weights.raw<double>(j);
                     rowNo++;
                 }
             }

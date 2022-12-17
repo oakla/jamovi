@@ -139,7 +139,7 @@ class Analyses:
 
         return self._analyses[0].name == 'empty'
 
-    def create(self, id, name, ns, options_pb, index=None):
+    def create(self, id, name, ns, options_pb=None, index=None):
 
         if id == 0:
             id = self._next_id

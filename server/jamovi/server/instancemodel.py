@@ -736,6 +736,10 @@ class InstanceModel:
         self._dataset.blank = blank
 
     @property
+    def has_weights(self):
+        return self.weights_name is not None
+
+    @property
     def weights(self):
         return self._dataset.weights
 
