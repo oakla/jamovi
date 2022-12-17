@@ -427,7 +427,7 @@ def read(data, path, prog_cb, **kwargs):
                                 if len(meta_label) > 3:
                                     pinned = meta_label[3]
                                 else:
-                                    pinned = column.trim_levels == False
+                                    pinned = column.trim_levels is False
                                 column.append_level(meta_label[0], meta_label[1],  import_value, pinned)
                         else:
                             columns_w_bad_levels.append(column.id)
