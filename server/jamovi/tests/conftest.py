@@ -2,10 +2,14 @@
 
 from os import path
 from tempfile import TemporaryDirectory
+from typing import AsyncIterable
 
 import pytest
+import pytest_asyncio
 
+from jamovi.server.engine import EngineFactory
 from jamovi.server import dataset
+from jamovi.server.pool import Pool
 
 
 @pytest.fixture
@@ -38,3 +42,12 @@ def empty_dataset(shared_memory_store: dataset.Store) -> dataset.DataSet:
 @pytest.fixture
 def empty_column(empty_dataset: dataset.DataSet) -> dataset.Column:
     return empty_dataset.append_column("fred")
+
+
+@pytest_asyncio.fixture
+async def analysis_pool(temp_dir: str) -> AsyncIterable[Pool]:
+    pool = Pool(1)
+    engine_manager = EngineFactory.create('duckdb', temp_dir, pool, {})
+    await engine_manager.start()
+    yield pool
+    await engine_manager.stop()

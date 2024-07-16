@@ -10,3 +10,5 @@ pyexcel-ezodf
 aiohttp
 loguru
 pytest
+pytest-asyncio
+pytest-timeout
